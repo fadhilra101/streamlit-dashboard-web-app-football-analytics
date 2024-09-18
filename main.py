@@ -1,7 +1,6 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
-import time
 from statsbombpy import sb
 
 def main_page():
@@ -63,7 +62,7 @@ def main_page():
                 columns = df.columns.tolist()
                 
                 # Gunakan multiselect untuk memilih kolom, default semua kolom terpilih
-                selected_columns = st.multiselect('Select columns to display:', columns, default=columns)
+                selected_columns = st.multiselect('Select columns to display:', columns)
 
                 # Filter DataFrame berdasarkan kolom yang dipilih
                 filtered_df = df[selected_columns]
@@ -108,22 +107,13 @@ def main_page():
                 # Tampilkan DataFrame yang sudah difilter
                 st.dataframe(filtered_df, use_container_width=True)
 
-      
-  
-def shot_analysis_page():
-  st.title('Shot Analysis')
-
-
-
-if 'page' not in st.session_state:
-    st.session_state.page = 'main'
-
-# Sidebar untuk navigasi
-st.sidebar.title("Navigation")
-page = st.sidebar.radio("Select Page", ["Main Page", "Shot Analysis"])
-
-# Tampilkan halaman berdasarkan pilihan
-if page == "Main Page":
-    main_page()
-elif page == "Shot Analysis":
-    shot_analysis_page()
+                # Cek jika 'type' dipilih, kolom 'location' dipilih, dan nilai 'type' == 'Shot'
+                if 'type' in selected_columns and 'location' in selected_columns:
+                    # Ambil nilai yang dipilih dari selectbox 'type'
+                    if selected_type == 'Shot':
+                        # Simpan DataFrame di session_state
+                        st.session_state.filtered_df = filtered_df
+                        # Tampilkan tombol untuk menuju halaman 'shot_analysis_page'
+                        if st.button('Go to Shot Analysis'):
+                            st.session_state.page = 'shot_analysis_page'
+                            st.rerun()
