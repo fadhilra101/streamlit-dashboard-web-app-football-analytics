@@ -12,13 +12,15 @@ def shot_analysis_page():
 
     st.title('Shot Analysis')
 
-    filtered_df = st.session_state.filtered_df
+    if 'filtered_df' in st.session_state:
+        filtered_df = st.session_state.filtered_df
+        st.dataframe(filtered_df, use_container_width=True)
+    else:
+        # upload data
+        st.write("Your data must be on csv format with this following data: - location (json type with coordinate data)")
 
-    st.dataframe(filtered_df, use_container_width=True)
+        st.write("Upload data:")
+        uploaded_file = st.file_uploader("Choose a file")
 
     # Draw the pitch
-    bg_color = '#0E1117'
-    fig, ax = plt.subplots(figsize=(10, 6))
-    fig.patch.set_facecolor(bg_color)
-    draw_pitch(pitch_color=bg_color, line_color='lightgrey', ax=ax)
-    st.pyplot(fig)
+    draw_pitch()
