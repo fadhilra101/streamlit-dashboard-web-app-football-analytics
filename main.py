@@ -3,117 +3,110 @@ import numpy as np
 import pandas as pd
 from statsbombpy import sb
 
+def save_selections_to_session():
+    # Save selections to session state when navigating to another page
+    st.session_state.selected_columns = st.session_state.get('temp_selected_columns', [])
+    st.session_state.selected_competition_index = st.session_state.get('selected_competition_index', 0)
+    st.session_state.selected_season_index = st.session_state.get('selected_season_index', 0)
+    st.session_state.selected_fixture_index = st.session_state.get('selected_fixture_index', 0)
+    st.session_state.selected_player_index = st.session_state.get('selected_player_index', 0)
+    st.session_state.selected_team_index = st.session_state.get('selected_team_index', 0)
+    st.session_state.selected_type_index = st.session_state.get('selected_type_index', 0)
+    st.session_state.selected_technique_index = st.session_state.get('selected_technique_index', 0)
+    st.session_state.selected_outcome_index = st.session_state.get('selected_outcome_index', 0)
+
 def main_page():
     st.title('Streamlit Web App')
     st.header('Football Match Data from StatsBomb API')
 
     data = sb.competitions()
-
     competition_dict = dict(zip(data['competition_name'], data['competition_id']))
     season_dict = dict(zip(data['season_name'], data['season_id']))
 
-    # Seleksi kompetisi
-    selected_competition_name = st.selectbox('Select Competition', data['competition_name'].unique(), index=None)
-    selected_competition_id = competition_dict.get(selected_competition_name) if selected_competition_name else None
+    # Select competition
+    selected_competition_name = st.selectbox('Select Competition', data['competition_name'].unique(), 
+                                               index=st.session_state.get('selected_competition_index', 0))
 
-    if selected_competition_id:
-        filtered_seasons = data[data['competition_id'] == selected_competition_id]['season_name'].unique()
-        selected_season_name = st.selectbox('Select Season', filtered_seasons, index=None)
-        selected_season_id = season_dict.get(selected_season_name) if selected_season_name else None
+    if selected_competition_name:
+        selected_competition_id = competition_dict.get(selected_competition_name)
+        st.session_state.selected_competition_index = data['competition_name'].tolist().index(selected_competition_name)
 
-        if selected_season_id:
-            # Ambil data pertandingan berdasarkan competition_id dan season_id yang dipilih
-            df = sb.matches(competition_id=selected_competition_id, season_id=selected_season_id)
-            st.dataframe(df, use_container_width=True)
+        if selected_competition_id:
+            filtered_seasons = data[data['competition_id'] == selected_competition_id]['season_name'].unique()
+            selected_season_name = st.selectbox('Select Season', filtered_seasons, 
+                                                 index=st.session_state.get('selected_season_index', 0))
+            selected_season_id = season_dict.get(selected_season_name) if selected_season_name else None
+            st.session_state.selected_season_index = filtered_seasons.tolist().index(selected_season_name)
 
-            # Daftar singkatan yang ingin dipertahankan
-            acronyms = ['LFC', 'WFC']
+            if selected_season_id:
+                df = sb.matches(competition_id=selected_competition_id, season_id=selected_season_id)
+                st.dataframe(df, use_container_width=True)
 
-            # Fungsi untuk mengubah format judul, tapi mempertahankan singkatan
-            def custom_title_case(word):
-                if word.upper() in acronyms:
-                    return word.upper()
-                return word.title()
+                # Format fixture list
+                fixture_list = df[['home_team', 'away_team']].apply(lambda x: f"{x['home_team']} vs {x['away_team']}", axis=1)
+                fixture_dict = {fixture: match_id for fixture, match_id in zip(fixture_list, df['match_id'])}
+                selected_fixture = st.selectbox('Select Fixture', fixture_list, 
+                                                  index=st.session_state.get('selected_fixture_index', 0))
+                selected_match_id = fixture_dict.get(selected_fixture)
+                st.session_state.selected_fixture_index = fixture_list.tolist().index(selected_fixture)
 
-            def format_team_name(name):
-                return ' '.join(custom_title_case(word) for word in name.split())
+                if selected_match_id:
+                    df = sb.events(match_id=selected_match_id)
+                    columns = df.columns.tolist()
+                    st.session_state.temp_selected_columns = st.multiselect(
+                        'Select columns to display:', 
+                        columns, 
+                        default=st.session_state.get('selected_columns', [])
+                    )
 
-            # Terapkan fungsi format_team_name untuk setiap elemen di kolom home_team dan away_team
-            fixture_list = df[['home_team', 'away_team']].applymap(format_team_name)
+                    filtered_df = df[st.session_state.temp_selected_columns]
 
-            # Ubah DataFrame menjadi list of tuples
-            fixture_list = fixture_list.values.tolist()
+                    # Temporary variables for selections
+                    if 'player' in st.session_state.temp_selected_columns:
+                        selected_player = st.selectbox('Select Player', 
+                                                        ['All'] + df['player'].dropna().unique().tolist(), 
+                                                        index=st.session_state.get('selected_player_index', 0))
+                        if selected_player != 'All':
+                            filtered_df = filtered_df[filtered_df['player'] == selected_player]
 
-            # Tambahkan 'vs' di antara home_team dan away_team
-            formatted_fixture_list = [f'{home} vs {away}' for home, away in fixture_list]
+                    if 'team' in st.session_state.temp_selected_columns:
+                        selected_team = st.selectbox('Select Team', 
+                                                    ['All'] + df['team'].dropna().unique().tolist(), 
+                                                    index=st.session_state.get('selected_team_index', 0))
+                        if selected_team != 'All':
+                            filtered_df = filtered_df[filtered_df['team'] == selected_team]
 
-            # Buat dictionary untuk menghubungkan fixture dengan match_id
-            fixture_dict = {f'{home} vs {away}': match_id for (home, away), match_id in zip(fixture_list, df['match_id'])}
+                    if 'type' in st.session_state.temp_selected_columns:
+                        selected_type = st.selectbox('Select Type', 
+                                                    ['All'] + df['type'].dropna().unique().tolist(), 
+                                                    index=st.session_state.get('selected_type_index', 0))
+                        if selected_type != 'All':
+                            filtered_df = filtered_df[filtered_df['type'] == selected_type]
 
-            # Menampilkan selectbox untuk memilih fixture
-            selected_fixture = st.selectbox('Select Fixture', formatted_fixture_list, index=None)
-            selected_match_id = fixture_dict.get(selected_fixture)
-
-            if selected_match_id:
-                # Ambil data pertandingan berdasarkan match_id yang dipilih
-                df = sb.events(match_id=selected_match_id)
-                
-                # Dapatkan semua kolom yang ada di DataFrame
-                columns = df.columns.tolist()
-                
-                # Gunakan multiselect untuk memilih kolom, default semua kolom terpilih
-                selected_columns = st.multiselect('Select columns to display:', columns)
-
-                # Filter DataFrame berdasarkan kolom yang dipilih
-                filtered_df = df[selected_columns]
-
-                # Jika kolom 'player' dipilih, buat selectbox untuk memfilter berdasarkan player
-                if 'player' in selected_columns:
-                    unique_players = df['player'].dropna().unique().tolist()
-                    selected_player = st.selectbox('Select Player', ['All'] + unique_players, index=0)
-                    if selected_player != 'All':
-                        filtered_df = filtered_df[filtered_df['player'] == selected_player]
-
-                # Jika kolom 'team' dipilih, buat selectbox untuk memfilter berdasarkan team
-                if 'team' in selected_columns:
-                    unique_teams = df['team'].dropna().unique().tolist()
-                    selected_team = st.selectbox('Select Team', ['All'] + unique_teams, index=0)
-                    if selected_team != 'All':
-                        filtered_df = filtered_df[filtered_df['team'] == selected_team]
-                
-                # Jika kolom 'type' dipilih, buat selectbox untuk memfilter berdasarkan type
-                if 'type' in selected_columns:
-                    unique_types = df['type'].dropna().unique().tolist()
-                    selected_type = st.selectbox('Select Type', ['All'] + unique_types, index=0)
-                    if selected_type != 'All':
-                        filtered_df = filtered_df[filtered_df['type'] == selected_type]
-                        
-                        # Jika type yang dipilih adalah "Shot", tambahkan filter untuk shot_technique dan shot_outcome
+                        # After filtering the DataFrame and handling player and team selections
                         if selected_type == 'Shot':
-                            # Jika kolom 'shot_technique' dipilih, buat selectbox untuk memfilter berdasarkan shot_technique
-                            if 'shot_technique' in selected_columns:
-                                unique_techniques = df['shot_technique'].dropna().unique().tolist()
-                                selected_technique = st.selectbox('Select Shot Technique', ['All'] + unique_techniques, index=0)
+                            # Check if 'shot_technique' is in the selected columns
+                            if 'shot_technique' in st.session_state.temp_selected_columns:
+                                selected_technique = st.selectbox('Select Shot Technique', 
+                                                                ['All'] + df['shot_technique'].dropna().unique().tolist(), 
+                                                                index=st.session_state.get('selected_technique_index', 0))
                                 if selected_technique != 'All':
                                     filtered_df = filtered_df[filtered_df['shot_technique'] == selected_technique]
-                            
-                            # Jika kolom 'shot_outcome' dipilih, buat selectbox untuk memfilter berdasarkan shot_outcome
-                            if 'shot_outcome' in selected_columns:
-                                unique_outcomes = df['shot_outcome'].dropna().unique().tolist()
-                                selected_outcome = st.selectbox('Select Shot Outcome', ['All'] + unique_outcomes, index=0)
+
+                            # Check if 'shot_outcome' is in the selected columns
+                            if 'shot_outcome' in st.session_state.temp_selected_columns:
+                                selected_outcome = st.selectbox('Select Shot Outcome', 
+                                                                ['All'] + df['shot_outcome'].dropna().unique().tolist(), 
+                                                                index=st.session_state.get('selected_outcome_index', 0))
                                 if selected_outcome != 'All':
                                     filtered_df = filtered_df[filtered_df['shot_outcome'] == selected_outcome]
 
-                # Tampilkan DataFrame yang sudah difilter
-                st.dataframe(filtered_df, use_container_width=True)
+                    # Display filtered data
+                    st.dataframe(filtered_df, use_container_width=True)
 
-                # Cek jika 'type' dipilih, kolom 'location' dipilih, dan nilai 'type' == 'Shot'
-                if 'type' in selected_columns and 'location' in selected_columns:
-                    # Ambil nilai yang dipilih dari selectbox 'type'
-                    if selected_type == 'Shot':
-                        # Simpan DataFrame di session_state
+                    # Save selections when navigating to Shot Analysis
+                    if st.button('Go to Shot Analysis'):
+                        save_selections_to_session()  # Save selections before navigation
                         st.session_state.filtered_df = filtered_df
-                        # Tampilkan tombol untuk menuju halaman 'shot_analysis_page'
-                        if st.button('Go to Shot Analysis'):
-                            st.session_state.page = 'shot_analysis_page'
-                            st.rerun()
+                        st.session_state.page = 'shot_analysis_page'
+                        st.rerun()  # Refresh to the next page
