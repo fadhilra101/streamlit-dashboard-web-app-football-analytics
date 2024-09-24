@@ -25,7 +25,7 @@ def process_shot_data(df):
     # Mengembalikan DataFrame yang sudah diproses
     return df[['x_shot', 'y_shot', 'x_shot_end', 'y_shot_end']]
 
-def draw_pitch(df, shot_color='red', shot_end_color='green', switch_axes=False):
+def draw_pitch(df, shot_color='blue', switch_axes=False):
 
     if ('location' not in df.columns or 
             'shot_end_location' not in df.columns or 
@@ -60,7 +60,30 @@ def draw_pitch(df, shot_color='red', shot_end_color='green', switch_axes=False):
 
     # Menambahkan scatter plot ke lapangan berdasarkan shot x dan y
     ax.scatter(x_shot, y_shot, color=shot_color, edgecolors='black', zorder=3, label='Shot')
-    ax.scatter(x_shot_end, y_shot_end, color=shot_end_color, edgecolors='black', zorder=3, label='Shot End')
+    # Menambahkan garis dari shot ke shot_end dan pewarnaan berdasarkan shot_outcome
+    if 'shot_outcome' in df.columns:
+        for i in range(len(x_shot)):
+            outcome = df['shot_outcome'].iloc[i]  # Ambil shot_outcome per baris
+            if outcome == 'Goal':
+                line_color = '#00FF00'  # Hijau terang
+                scatter_color = '#00FF00'  # Hijau terang
+            elif outcome == 'Post':
+                line_color = 'yellow'
+                scatter_color = 'yellow'
+            else:
+                line_color = 'red'
+                scatter_color = 'red'
+
+            # Plot garis dan scatter shot_end sesuai outcome
+            ax.plot([x_shot.iloc[i], x_shot_end.iloc[i]], [y_shot.iloc[i], y_shot_end.iloc[i]], 
+                    color=line_color, zorder=2, linewidth=2)
+            ax.scatter(x_shot_end.iloc[i], y_shot_end.iloc[i], color=scatter_color, edgecolors='black', zorder=3)
+    else:
+        # Jika tidak ada shot_outcome, gunakan warna default
+        ax.scatter(x_shot_end, y_shot_end, color='red', edgecolors='black', zorder=3, label='Shot End')
+        for i in range(len(x_shot)):
+            ax.plot([x_shot.iloc[i], x_shot_end.iloc[i]], [y_shot.iloc[i], y_shot_end.iloc[i]], 
+                    color='red', zorder=2, linewidth=2)
 
     # Menambahkan legend agar lebih jelas
     ax.legend(loc='upper left')

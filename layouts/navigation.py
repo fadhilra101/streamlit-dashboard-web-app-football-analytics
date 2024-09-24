@@ -1,24 +1,26 @@
 import streamlit as st
-from main import save_selections_to_session
+from session import save_selections_to_session
 
-def navigation():
-    # Sidebar for navigation
-    st.sidebar.title('Navigation')
+def sidebar_navigation(selected_items):
+    st.sidebar.title("Navigation")
 
-    # Check the page state
-    if 'page' not in st.session_state:
-        st.session_state.page = 'main_page'  # Default page
+    # Create a dictionary to map page names to function names
+    pages = {
+        "Main Page": "main_page",
+        "Shot Analysis": "shot_analysis_page",
+        # Add more pages as needed
+    }
 
-    # Buttons to navigate
-    if st.sidebar.button('Main Page'):
-        save_selections_to_session()  # Save selections when navigating away
-        st.session_state.page = 'main_page'
-        st.rerun()
+    # Iterate through the pages and create a button for each
+    for page_name, page_key in pages.items():
+        if st.sidebar.button(page_name):
+            # Check if the selected page is different from the current page
+            if 'page' not in st.session_state or st.session_state.page != page_key:
+                # Save selections to session state
+                save_selections_to_session(selected_items)
 
-    if st.sidebar.button('Shot Analysis'):
-        save_selections_to_session()  # Save selections when navigating away
-        st.session_state.page = 'shot_analysis_page'
-        st.rerun()
+            # Set the selected page in session state
+            st.session_state.page = page_key
+            st.rerun()  # Refresh the app to navigate to the new page
 
-    # Return the selected page
     return st.session_state.page
