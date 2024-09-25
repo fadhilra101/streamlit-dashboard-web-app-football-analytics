@@ -25,7 +25,7 @@ def process_shot_data(df):
     # Mengembalikan DataFrame yang sudah diproses
     return df[['x_shot', 'y_shot', 'x_shot_end', 'y_shot_end']]
 
-def draw_pitch(df, shot_color='blue', switch_axes=False):
+def shot_pitch(df, shot_color='blue', switch_axes=False):
 
     if ('location' not in df.columns or 
             'shot_end_location' not in df.columns or 
@@ -55,11 +55,12 @@ def draw_pitch(df, shot_color='blue', switch_axes=False):
     # Menggunakan pitch dari mplsoccer
     pitch = VerticalPitch(pitch_type='statsbomb', 
                           pitch_color='grass', line_color='white', 
-                          stripe=True, half=True,)
+                          stripe=True, half=True)
     pitch.draw(ax=ax)
 
     # Menambahkan scatter plot ke lapangan berdasarkan shot x dan y
-    ax.scatter(x_shot, y_shot, color=shot_color, edgecolors='black', zorder=3, label='Shot')
+    ax.scatter(x_shot, y_shot, color=shot_color, edgecolors='black', zorder=3, label='Shot', s=200)
+
     # Menambahkan garis dari shot ke shot_end dan pewarnaan berdasarkan shot_outcome
     if 'shot_outcome' in df.columns:
         for i in range(len(x_shot)):
@@ -76,16 +77,30 @@ def draw_pitch(df, shot_color='blue', switch_axes=False):
 
             # Plot garis dan scatter shot_end sesuai outcome
             ax.plot([x_shot.iloc[i], x_shot_end.iloc[i]], [y_shot.iloc[i], y_shot_end.iloc[i]], 
-                    color=line_color, zorder=2, linewidth=2)
-            ax.scatter(x_shot_end.iloc[i], y_shot_end.iloc[i], color=scatter_color, edgecolors='black', zorder=3)
+                    color=line_color, zorder=2, linewidth=3)
+            ax.scatter(x_shot_end.iloc[i], y_shot_end.iloc[i], color=scatter_color, edgecolors='black', zorder=3, s=200)
+            
+            # Jika kolom player ada, tambahkan nama pemain di bawah titik shot
+            if 'player' in df.columns:
+                player_name = df['player'].iloc[i]
+                ax.text(x_shot.iloc[i], y_shot.iloc[i] - 0.025 * max(y_shot), player_name, fontsize=10, color='black', ha='center', zorder=1)
+
     else:
         # Jika tidak ada shot_outcome, gunakan warna default
-        ax.scatter(x_shot_end, y_shot_end, color='red', edgecolors='black', zorder=3, label='Shot End')
+        ax.scatter(x_shot_end, y_shot_end, color='red', edgecolors='black', zorder=3, label='Shot End', s=200)
         for i in range(len(x_shot)):
             ax.plot([x_shot.iloc[i], x_shot_end.iloc[i]], [y_shot.iloc[i], y_shot_end.iloc[i]], 
-                    color='red', zorder=2, linewidth=2)
+                    color='red', zorder=2, linewidth=3)
+            
+            # Jika kolom player ada, tambahkan nama pemain di bawah titik shot
+            if 'player' in df.columns:
+                player_name = df['player'].iloc[i]
+                ax.text(x_shot.iloc[i], y_shot.iloc[i] - 0.025 * max(y_shot), player_name, fontsize=10, color='black', ha='center', zorder=1)
+
+
 
     # Menambahkan legend agar lebih jelas
     ax.legend(loc='upper left')
     
     st.pyplot(fig)
+
