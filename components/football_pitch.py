@@ -38,6 +38,20 @@ def shot_pitch(df, shot_color='blue', switch_axes=False):
         'y_shot_end' not in df.columns or df['y_shot_end'].isnull().any()):
         process_shot_data(df)
 
+    # Check for alternative column names
+    alternative_columns = [
+        ('x', 'y', 'x_end', 'y_end'),
+        ('shot_x', 'shot_y', 'shot_end_x', 'shot_end_y'),
+        ('start_x', 'start_y', 'end_x', 'end_y')
+    ]
+
+    for alt_cols in alternative_columns:
+        if all(col in df.columns for col in alt_cols):
+            df['x_shot'] = df[alt_cols[0]]
+            df['y_shot'] = df[alt_cols[1]]
+            df['x_shot_end'] = df[alt_cols[2]]
+            df['y_shot_end'] = df[alt_cols[3]]
+            break
 
     x_shot = df['x_shot']
     y_shot = df['y_shot']

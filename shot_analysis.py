@@ -20,7 +20,9 @@ def shot_analysis_page():
         shot_pitch(df, switch_axes=True)
     else:
         # upload data
-        st.write("Your data must be on csv format with this following data: - location (json type with coordinate data)")
+        st.write("Your data must be on ***CSV*** format with this following data: \n - location (json type with coordinate data) / or x and y data \n - shot_end_location (json type with coordinate data) \n - type (string type with shot data)")
+
+        st.warning("*Naming must be the same as the example above or use a similar naming convention.*")
 
         st.write("Upload data:")
         uploaded_file = st.file_uploader("Choose a file")

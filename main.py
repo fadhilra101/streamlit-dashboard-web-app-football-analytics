@@ -55,6 +55,13 @@ def main_page():
 
                     filtered_df = df[st.session_state.temp_selected_columns]
 
+                    # Check for required columns to access Shot Analysis page
+                    required_shots = ['type', 'location', 'shot_end_location']
+                    missing_columns = [col for col in required_shots if col not in st.session_state.temp_selected_columns]
+
+                    if missing_columns:
+                        st.warning("To access the **Shot Analysis** page, please select the following columns:\n" + "\n".join(f"- {col}" for col in missing_columns))
+
                     # Temporary variables for selections
                     
                     if 'player' in st.session_state.temp_selected_columns:
@@ -112,6 +119,8 @@ def main_page():
 
                                 if selected_outcome != 'All':
                                     filtered_df = filtered_df[filtered_df['shot_outcome'] == selected_outcome]
+                        else:
+                            st.warning('You need to select Shot type to access Shot Analysis page.')
 
 
                     # Display filtered data
