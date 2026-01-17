@@ -32,12 +32,22 @@ def main_page():
                 selected_items['season'] = filtered_seasons.index(selected_season_name)
 
             if selected_season_id:
-                df = sb.matches(competition_id=selected_competition_id, season_id=selected_season_id)
-                st.dataframe(df, use_container_width=True)
+                matches_df = sb.matches(competition_id=selected_competition_id, season_id=selected_season_id)
+                st.dataframe(matches_df, use_container_width=True)
+                
+                # Download matches data as CSV
+                if not matches_df.empty:
+                    csv_matches = matches_df.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                        label="📥 Download Matches as CSV",
+                        data=csv_matches,
+                        file_name=f"{selected_competition_name}_{selected_season_name}_matches.csv",
+                        mime="text/csv",
+                    )
 
                 # Format fixture list
-                fixture_list = df[['home_team', 'away_team']].apply(lambda x: f"{x['home_team']} vs {x['away_team']}", axis=1).tolist()
-                fixture_dict = {fixture: match_id for fixture, match_id in zip(fixture_list, df['match_id'])}
+                fixture_list = matches_df[['home_team', 'away_team']].apply(lambda x: f"{x['home_team']} vs {x['away_team']}", axis=1).tolist()
+                fixture_dict = {fixture: match_id for fixture, match_id in zip(fixture_list, matches_df['match_id'])}
                 selected_fixture = st.selectbox('Select Fixture', fixture_list, 
                                                   index=st.session_state.get('selected_fixture_index', None))
                 selected_match_id = fixture_dict.get(selected_fixture)
@@ -45,6 +55,11 @@ def main_page():
                     selected_items['fixture'] = fixture_list.index(selected_fixture)
 
                 if selected_match_id:
+                    # Get match details for filename
+                    match_info = matches_df[matches_df['match_id'] == selected_match_id].iloc[0]
+                    match_date = match_info.get('match_date', 'unknown_date')
+                    kick_off = match_info.get('kick_off', 'unknown_time').replace(':', '-')
+                    
                     df = sb.events(match_id=selected_match_id)
                     columns = df.columns.tolist()
                     st.session_state.temp_selected_columns = st.multiselect(
@@ -125,6 +140,17 @@ def main_page():
 
                     # Display filtered data
                     st.dataframe(filtered_df, use_container_width=True)
+                    
+                    # Download filtered data as CSV
+                    if not filtered_df.empty:
+                        csv_filtered = filtered_df.to_csv(index=False).encode('utf-8')
+                        safe_fixture = selected_fixture.replace(' vs ', '_vs_').replace(' ', '_')
+                        st.download_button(
+                            label="📥 Download Filtered Data as CSV",
+                            data=csv_filtered,
+                            file_name=f"{safe_fixture}_{match_date}_{kick_off}_filtered_events.csv",
+                            mime="text/csv",
+                        )
 
                     # Save selections when navigating to Shot Analysis
                     if st.button('Go to Shot Analysis'):
